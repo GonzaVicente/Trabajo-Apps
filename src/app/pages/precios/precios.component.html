@@ -1,2 +1,21 @@
 <app-header></app-header>
-<p>precios works!</p>
+<main class="flex-column-center">
+    <div class="tabla">
+        <div class="header-tabla">
+            <div class="header-item">Vehiculo</div>
+            <div class="header-item">Precio</div>
+            <div class="header-item">Tiempo</div>
+            <div class="header-item">Acciones</div>
+        </div>
+        @for (fila of filas; track $index) {
+            <div class="table-row">
+                <div class="table-cell">{{ fila.id }}</div>
+                <div class="table-cell">
+                </div>
+                <div class="table-cell"></div>
+                <div class="table-cell acciones-container">
+                </div>
+            </div>
+        }
+    </div>
+</main>

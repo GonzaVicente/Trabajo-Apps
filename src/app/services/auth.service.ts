@@ -1,35 +1,42 @@
 import { Injectable } from '@angular/core';
-import { DatosLogin } from '../interfaces/login';
+import { Login } from '../interfaces/login';
+import { LoginComponent } from '../pages/login/login.component';
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class AuthService {
-
-  login(datosLogin: DatosLogin) {
-    return fetch('http://localhost:4000/login', {
-      method: 'POST',
-      body: JSON.stringify(datosLogin),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-    .then(r => r.json())
-    .then(response => {
-      if (response.status === 'ok') {
-        localStorage.setItem('token', response.token);
-        return true;
-      } else {
-        return false;
-      }
-    })
-    .catch(error => {
-      console.error('Error during login:', error);
-      return false;
-    });
+  
+  getToken(): string {
+      return localStorage.getItem('token') ?? ''
   }
-
-  getToken(): string | null {
-    return localStorage.getItem('token');
+  estalogueado(): boolean{
+    if(this.getToken())
+      return true;
+    else 
+    return false
   }
-}
+    Login(datosLogin:Login){
+      console.log("Inicio Login");
+      return fetch("http://localhost:4000/login",{
+        method: "POST",
+        headers: {
+          "Content-Type" : "application/json"  
+        },      
+        body: JSON.stringify(datosLogin)
+      }) .then(res => res.json().then(data => {
+          if (data.status === 'ok') {
+            localStorage.setItem('token', data.token);
+            return true;
+          } else {
+            return false
+
+
+          }
+        }))
+    
+          }
+        }
+
+
+        /*Faltaria hacer una funcion de logout*/

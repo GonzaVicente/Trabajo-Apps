@@ -44,16 +44,17 @@
     }
   
     &__modal-btn {
-      background-color: #4caf50;
+      background-color: Cerrar sesión;
       color: #fff;
       border: none;
       padding: 0.5rem 1rem;
       font-size: 1rem;
       cursor: pointer;
       transition: background-color 0.3s ease;
+      color: #fff;
   
       &:hover {
-        background-color: #388e3c;
+        background-color: #807272;
       }
     }
   }

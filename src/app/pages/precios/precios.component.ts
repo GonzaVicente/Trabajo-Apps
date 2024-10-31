@@ -9,5 +9,9 @@ import { HeaderComponent } from '../../components/header/header.component';
   styleUrl: './precios.component.scss'
 })
 export class PreciosComponent {
+filas: any;
+agregarFila() {
+throw new Error('Method not implemented.');
+}
 
 }

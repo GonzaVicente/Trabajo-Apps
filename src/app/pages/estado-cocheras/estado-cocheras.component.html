@@ -1,24 +1,52 @@
 <app-header></app-header>
 
 <main class="flex-column-center">
-<div class="tabla">
+  <div class="tabla">
     <div class="header-tabla">
-        <div>Nro</div>
-        <div>Disponibilidad</div>
-        <div>Ingreso</div>
-        <div>Acciones</div>
+      <div class="header-item">Nro</div>
+      <div class="header-item">Disponibilidad</div>
+      <div class="header-item">Ingreso</div>
+      <div class="header-item">Acciones</div>
     </div>
-    @for (fila of filas; track $index) {
-        <div>
-            <div>{{ fila.id }}</div>
-            <div><span [ngClass]="{disponible: !fila.deshabilitada, ocupado: fila.deshabilitada}">{{ fila.deshabilitada ? 'No disponible' : 'Disponible'}}</span></div>
-            <div></div>
-            <div class="acciones-container">
-                <button (click)="cambiarDisponibilidadCochera($index)"><img src="img/icons/prohibido.png" alt="Cambiar disponibilidad fila"></button>
-                <button (click)="eliminarFIla(fila.id)"><img src="img/icons/contenedor-de-basura.png" alt="Borrar fila"></button>
-            </div>
-        </div>
-    }
-</div>
-<button (click)="agregarFila()" class="boton-resaltado" id="agregar-cochera">+</button>
- </main>
+
+    <div *ngFor="let fila of filas; let i = index" class="table-row">
+      <div class="table-cell">{{ fila.id }}</div>
+      <div class="table-cell">
+        <span 
+          *ngIf="!fila.deshabilitada && !fila.activo" 
+          class="disponible" 
+          (click)="abrirModalNuevoEstacionamiento(fila.id)"
+        >
+          Disponible
+        </span>
+        <span 
+          *ngIf="fila.activo" 
+          class="activo" 
+          (click)="cerrarEstacionamiento(fila.id, fila.activo.id)"
+        >
+          {{ fila.activo.patente }}
+        </span>
+        <span 
+          *ngIf="fila.deshabilitada && !fila.activo" 
+          class="ocupado"
+        >
+          No disponible
+        </span>
+      </div>
+      <div class="table-cell">
+        <!-- Mostrar hora de ingreso o de deshabilitación según el estado -->
+        {{ fila.activo?.horaIngreso || fila.horaDeshabilitacion || '-' }}
+      </div>
+      <div class="table-cell acciones-container">
+        <button (click)="cambiarDisponibilidadCochera(fila.id, fila.deshabilitada)" class="action-button">
+          <img src="img/icons/prohibido.png" alt="Cambiar disponibilidad fila">
+        </button>
+        <button (click)="eliminarCochera(fila.id)" class="action-button">
+          <img src="img/icons/contenedor-de-basura.png" alt="Borrar fila">
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <button (click)="agregarFila()" class="boton-resaltado" id="agregar-cochera">+</button>
+</main>

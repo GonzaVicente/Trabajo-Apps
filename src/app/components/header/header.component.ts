@@ -1,31 +1,30 @@
 import { Component, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import Swal from 'sweetalert2';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-
+import Swal from 'sweetalert2';
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [RouterModule],
+  imports: [RouterModule, RouterLink],
   templateUrl: './header.component.html',
-  styleUrl: './header.component.scss',
+  styleUrl: './header.component.scss'
 })
 export class HeaderComponent {
   esAdmin:boolean = false;
-  auth = inject(AuthService);
+  auth = inject(AuthService)
+  
+  resultadoInput: string = " ";
 
-  abrirModal() {
-    Swal.fire({
-      title: 'Do you want to save the changes?',
-      showDenyButton: true,
+  async abrirModal(){
+    const confirmacion = await Swal.fire({
+      title: '¿Desea Cerrar Sesion?',
+      text: 'Esta acción cerrara la ventana actual.',
+      icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: 'Save',
-      denyButtonText: `Don't save`,
-    }).then(result => {
-      if (result.isConfirmed)
-        Swal.fire('Saved!', '', 'success');
-      else if (result.isDenied)
-        Swal.fire('Changes are not saved', '', 'info');
+      confirmButtonText: 'Sí, cerrar',
+      cancelButtonText: 'Cancelar'
     });
-  }
-}
+    if (confirmacion.isConfirmed) {
+      Swal.fire('Cochera Eliminada', 'La cochera ha sido eliminada de la plataforma.', 'success');
+}}};
