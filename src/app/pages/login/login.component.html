@@ -4,10 +4,10 @@
     </div>
     <div id="derecha">
         <form>
-            <input type="text" id="usuario" placeholder="Usuario">
-            <input type="password" id="usuario" placeholder="Contraseña">
+            <input type="text" name="username" placeholder="Usuario" [(ngModel)]="datosLogin.username">
+            <input type="password" name="password" placeholder="Contraseña" [(ngModel)]="datosLogin.password">
             <!-- Lo hice botón por algo que pasará más adelante -->
-            <button class="boton-resaltado" [routerLink]="['/estado-cocheras']">Iniciar sesión</button>
+            <button class="boton-resaltado" (click)="iniciarSesion()">Iniciar sesión</button>
         </form>
         <a [routerLink]="['/registro']">Registrarse</a>
     </div>

@@ -1,6 +1,6 @@
-export interface Cochera { 
-    nro: number,
-    disponibilidad: boolean,
-    ingreso: string, 
-    acciones: string
+export interface Cochera {
+    id: number,
+    descripcion: string;
+    deshabilitada: number;
+    eliminada: boolean;
 }
