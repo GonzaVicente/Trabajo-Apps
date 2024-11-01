@@ -34,25 +34,9 @@ export class EstadoCocherasComponent {
   estacionamientos = inject(EstacionamientosService);
 
   ngOnInit() {
-    this.reload().then((filas: Cochera[]) => {
-      this.filas = filas.map((fila: Cochera) => ({
-        ...fila,
-        activo: fila.activo || null,
-        horaDeshabilitacion: fila.horaDeshabilitacion || (fila.deshabilitada ? new Date().toISOString() : null),
-        deshabilitada: fila.deshabilitada || 0
-      })) as (Cochera & { activo: Estacionamiento | null; horaDeshabilitacion: string | null; deshabilitada: number })[];
-    }).catch(error => {
+    this.reload().catch(error => {
       console.error('Error al cargar las cocheras:', error);
     });
-  }
-
-  traerCocheras() {
-    return fetch('http://localhost:4000/cocheras/', {
-      method: 'GET',
-      headers: {
-        authorization: 'Bearer ' + this.auth.getToken()
-      }
-    }).then((response) => response.json());
   }
 
   reload() {
@@ -61,7 +45,24 @@ export class EstadoCocherasComponent {
       headers: {
         authorization: 'Bearer ' + this.auth.getToken(),
       },
-    }).then(r => r.json());
+    })
+      .then((r) => r.json())
+      .then((filas) => {
+        this.filas = filas.map((fila: Cochera) => {
+          const patenteStorage = localStorage.getItem(`cochera_${fila.id}_patente`);
+          const horaIngresoStorage = localStorage.getItem(`cochera_${fila.id}_horaIngreso`);
+          const horaDeshabilitacionStorage = localStorage.getItem(`cochera_${fila.id}_horaDeshabilitacion`);
+
+          return {
+            ...fila,
+            activo: patenteStorage && horaIngresoStorage ? { id: -1, patente: patenteStorage, horaIngreso: horaIngresoStorage } : null,
+            horaDeshabilitacion: horaDeshabilitacionStorage || (fila.deshabilitada ? new Date().toISOString() : null),
+          };
+        });
+      })
+      .catch(error => {
+        console.error('Error al cargar las cocheras:', error);
+      });
   }
 
   agregarFila() {
@@ -73,9 +74,7 @@ export class EstadoCocherasComponent {
       },
       body: JSON.stringify({ descripcion: "" })
     }).then(() => {
-      this.traerCocheras().then((filas) => {
-        this.filas = filas;
-      });
+      this.reload();
     }).catch(error => {
       console.error('Error en la solicitud:', error);
     });
@@ -114,7 +113,7 @@ export class EstadoCocherasComponent {
     const accion = nuevoEstado === 1 ? 'disable' : 'enable';
     const url = `http://localhost:4000/cocheras/${cocheraId}/${accion}`;
     const mensaje = nuevoEstado === 1 ? 'deshabilitar' : 'habilitar';
-  
+
     const confirmacion = await Swal.fire({
       title: `¿${mensaje.charAt(0).toUpperCase() + mensaje.slice(1)} cochera?`,
       text: `Esta acción cambiará la disponibilidad a "${mensaje === 'habilitar' ? 'Disponible' : 'No disponible'}".`,
@@ -123,30 +122,41 @@ export class EstadoCocherasComponent {
       confirmButtonText: `Sí, ${mensaje}`,
       cancelButtonText: 'Cancelar'
     });
-  
+
     if (confirmacion.isConfirmed) {
       try {
         const response = await fetch(url, {
           method: 'POST',
           headers: {
             'Authorization': 'Bearer ' + this.auth.getToken(),
-          }
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            horaDeshabilitacion: nuevoEstado === 1 ? new Date().toISOString() : null
+          })
         });
-  
+
         if (!response.ok) {
           throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
-  
-        // Actualizar la horaDeshabilitacion: asignarla si está "No disponible" y borrarla si está "Disponible"
+
         const horaDeshabilitacion = nuevoEstado === 1 ? new Date().toISOString() : null;
-  
-        // Actualizar el estado en `this.filas`
+
+        if (nuevoEstado === 1) {
+          // Almacena la hora de deshabilitación en localStorage solo si no es null
+          const horaDeshabilitacionStr = horaDeshabilitacion ?? ""; 
+          localStorage.setItem(`cochera_${cocheraId}_horaDeshabilitacion`, horaDeshabilitacionStr);
+        } else {
+          // Remueve la hora de deshabilitación si está habilitada nuevamente
+          localStorage.removeItem(`cochera_${cocheraId}_horaDeshabilitacion`);
+        }
+
         this.filas = this.filas.map(fila => 
           fila.id === cocheraId 
             ? { ...fila, deshabilitada: nuevoEstado, horaDeshabilitacion, activo: nuevoEstado ? null : fila.activo } 
             : fila
         );
-  
+
         Swal.fire('Disponibilidad Actualizada', `La cochera ha sido marcada como "${nuevoEstado === 1 ? 'No disponible' : 'Disponible'}".`, 'success');
       } catch (error) {
         console.error(`Error al ${mensaje} la cochera:`, error);
@@ -154,9 +164,6 @@ export class EstadoCocherasComponent {
       }
     }
   }
-  
-  
-  
 
   async abrirModalNuevoEstacionamiento(idCochera: number) {
     await Swal.fire({
@@ -173,39 +180,22 @@ export class EstadoCocherasComponent {
       if (res.isConfirmed) {
         const patente = res.value;
         const horaIngreso = new Date().toISOString();
-  
-        try {
-          const response = await fetch('http://localhost:4000/estacionamientos/abrir', {
-            method: 'POST',
-            headers: {
-              'Authorization': 'Bearer ' + this.auth.getToken(),
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ patente, cocheraId: idCochera, horaIngreso })
-          });
-  
-          if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-          }
-  
-          const data: Estacionamiento = await response.json();
-  
-          this.filas = this.filas.map(fila => 
-            fila.id === idCochera 
-              ? { ...fila, activo: { id: data.id, patente, horaIngreso } as Estacionamiento, horaDeshabilitacion: null } 
-              : fila
-          ) as (Cochera & { activo: Estacionamiento | null; horaDeshabilitacion: string | null; })[];
-  
-          Swal.fire('Estacionamiento Abierto', `La cochera fue marcada como ocupada con la patente: ${patente}.`, 'success');
-        } catch (error) {
-          console.error('Error al abrir el estacionamiento en el servidor:', error);
-          Swal.fire('Error', 'No se pudo abrir el estacionamiento. Inténtalo de nuevo.', 'error');
-        }
+
+        localStorage.setItem(`cochera_${idCochera}_patente`, patente);
+        localStorage.setItem(`cochera_${idCochera}_horaIngreso`, horaIngreso);
+
+        this.filas = this.filas.map(fila => 
+          fila.id === idCochera 
+            ? { ...fila, activo: { id: -1, patente, horaIngreso } as Estacionamiento, horaDeshabilitacion: null } 
+            : fila
+        );
+        
+        Swal.fire('Estacionamiento Abierto', `La cochera fue marcada como ocupada con la patente: ${patente}.`, 'success');
       }
     });
   }
 
-  async cerrarEstacionamiento(idCochera: number, estacionamientoId: number) {
+  async abrirModalCerrarEstacionamiento(idCochera: number, estacionamientoId: number) {
     const confirmacion = await Swal.fire({
       title: '¿Cerrar estacionamiento?',
       text: 'Esta acción liberará la cochera y la marcará como disponible.',
@@ -214,33 +204,18 @@ export class EstadoCocherasComponent {
       confirmButtonText: 'Sí, cerrar',
       cancelButtonText: 'Cancelar'
     });
-  
+
     if (confirmacion.isConfirmed) {
-      try {
-        const response = await fetch(`http://localhost:4000/estacionamientos/cerrar`, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': 'Bearer ' + this.auth.getToken(),
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ estacionamientoId })
-        });
-  
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-  
-        this.filas = this.filas.map(fila => 
-          fila.id === idCochera 
-            ? { ...fila, activo: null, horaDeshabilitacion: null } 
-            : fila
-        ) as (Cochera & { activo: Estacionamiento | null; horaDeshabilitacion: string | null; })[];
-  
-        Swal.fire('Estacionamiento Cerrado', 'La cochera ha sido liberada y marcada como disponible.', 'success');
-      } catch (error) {
-        console.error('Error al cerrar el estacionamiento:', error);
-        Swal.fire('Error', 'No se pudo cerrar el estacionamiento. Inténtalo de nuevo.', 'error');
-      }
+      localStorage.removeItem(`cochera_${idCochera}_patente`);
+      localStorage.removeItem(`cochera_${idCochera}_horaIngreso`);
+
+      this.filas = this.filas.map(fila => 
+        fila.id === idCochera 
+          ? { ...fila, activo: null, horaDeshabilitacion: null } 
+          : fila
+      );
+
+      Swal.fire('Estacionamiento Cerrado', 'La cochera ha sido liberada y está disponible.', 'success');
     }
   }
 }
